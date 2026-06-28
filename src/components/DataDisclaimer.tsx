@@ -1,26 +1,27 @@
 import Link from "next/link";
 import { dataMeta } from "@/data/politicians";
 import { NON_MONETIZATION_PLEDGE } from "@/lib/compliance";
+import { formatSourceDate } from "@/lib/source-freshness";
 
 export default function DataDisclaimer() {
   const cycle = dataMeta?.cycle || "2024";
-  const syncedDate = dataMeta?.syncedAt
-    ? new Date(dataMeta.syncedAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        timeZone: "UTC",
-      })
-    : null;
+  const syncedDate = formatSourceDate(dataMeta?.syncedAt);
+  const votesDate = formatSourceDate(dataMeta?.sourcesUpdated?.votes);
+  const fecDate = formatSourceDate(dataMeta?.sourcesUpdated?.fec);
 
   return (
     <div className="border-b border-blue-500/20 bg-blue-950/30">
       <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <p className="text-sm text-blue-200">
           <span className="font-semibold text-white">Live public data.</span>{" "}
-          FEC {cycle} election cycle · refreshed from official bulk filings
+          FEC {cycle} election cycle · official bulk filings
           {syncedDate ? (
-            <span className="text-blue-300/80"> (last pipeline run {syncedDate})</span>
+            <span className="text-blue-300/80">
+              {" "}
+              (pipeline {syncedDate}
+              {votesDate ? ` · votes ${votesDate}` : ""}
+              {fecDate && fecDate !== votesDate ? ` · FEC ${fecDate}` : ""})
+            </span>
           ) : null}
           . Sources:{" "}
           <a

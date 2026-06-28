@@ -14,7 +14,8 @@ import ScoreHistoryChart from "@/components/ScoreHistoryChart";
 import DataCompleteness from "@/components/DataCompleteness";
 import LobbyingHighlights from "@/components/LobbyingHighlights";
 import MoneySourceBar from "@/components/MoneySourceBar";
-import { politicians } from "@/data/politicians";
+import { dataMeta, politicians } from "@/data/politicians";
+import { formatSourceDate } from "@/lib/source-freshness";
 import {
   getInfluenceHighlights,
   getIndividualVsPacPercent,
@@ -146,6 +147,18 @@ export default function PoliticianPage({ params }: PoliticianPageProps) {
           percent={dataCompleteness.percent}
           tier={dataCompleteness.tier}
         />
+        {(dataMeta?.sourcesUpdated?.votes || dataMeta?.sourcesUpdated?.fec) && (
+          <p className="mt-2 text-xs text-slate-500">
+            {dataMeta.sourcesUpdated?.votes && (
+              <>Votes through {formatSourceDate(dataMeta.sourcesUpdated.votes)}</>
+            )}
+            {dataMeta.sourcesUpdated?.votes && dataMeta.sourcesUpdated?.fec && " · "}
+            {dataMeta.sourcesUpdated?.fec && (
+              <>FEC {politician.dataCycle || dataMeta.cycle} data through{" "}
+              {formatSourceDate(dataMeta.sourcesUpdated.fec)}</>
+            )}
+          </p>
+        )}
       </div>
 
       <div className="mt-8">

@@ -21,7 +21,9 @@ const enriched = await buildLobbyingDataForPoliticians(data.politicians, CACHE);
 const withOrgs = enriched.filter((p) => (p.lobbyingOrganizations || []).length > 0).length;
 
 data.politicians = applyScoreRecalcToAll(enriched);
-data.meta.syncedAt = new Date().toISOString();
+const now = new Date().toISOString();
+data.meta.syncedAt = now;
+data.meta.sourcesUpdated = { ...(data.meta.sourcesUpdated || {}), lda: now };
 writeFileSync(OUT_FILE, JSON.stringify(data, null, 2));
 
 console.log(`Done — ${withOrgs} politicians have lobbying org matches.`);

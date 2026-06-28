@@ -1,0 +1,48 @@
+name: Weekly data sync
+
+on:
+  schedule:
+    # Sundays 11:00 UTC — refreshes GovTrack votes + FEC summaries; preserves LDA/LD-203/indiv from repo
+    - cron: "0 11 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Quick sync (votes + FEC; preserve heavy sources)
+        env:
+          SKIP_INDIV_SYNC: "1"
+          SKIP_LDA_SYNC: "1"
+          SKIP_LD203_SYNC: "1"
+        run: npm run sync-weekly
+
+      - name: Verify build
+        run: npm run build
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "TrackBack Bot"
+          git config user.email "trackback-bot@users.noreply.github.com"
+          if git diff --quiet src/data/politicians.json; then
+            echo "No data changes — skipping commit"
+            exit 0
+          fi
+          git add src/data/politicians.json
+          git commit -m "chore(data): weekly sync — GovTrack votes and FEC summaries"
+          git push

@@ -57,6 +57,8 @@ loadEnv();
 if (process.argv.includes("--quick")) {
   process.env.SKIP_INDIV_SYNC = "1";
   process.env.SKIP_LDA_SYNC = "1";
+  process.env.SKIP_LD203_SYNC = "1";
+  console.log("Quick sync: preserving cached indiv, LDA, and LD-203 from existing dataset");
 }
 
 function sleep(ms) {
@@ -688,11 +690,100 @@ async function fetchRecentVotes(personId, topDonors) {
   return votes;
 }
 
+function loadExistingDataset() {
+  if (!existsSync(OUT_FILE)) return null;
+  try {
+    return JSON.parse(readFileSync(OUT_FILE, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function mergePreservedFields(politicians, existingById) {
+  if (!existingById?.size) return politicians;
+
+  return politicians.map((p) => {
+    const ex = existingById.get(p.id);
+    if (!ex) return p;
+
+    const merged = { ...p };
+
+    if (process.env.SKIP_INDIV_SYNC === "1") {
+      if (ex.individualContributionTotal) {
+        merged.individualContributionTotal = ex.individualContributionTotal;
+      }
+      if (ex.topDonors?.length) {
+        const pas2Only = (p.topDonors || []).filter((d) => d.type === "PAC" || d.type === "Corporate");
+        const indivOnly = (ex.topDonors || []).filter((d) => d.type === "Individual");
+        const seen = new Set();
+        merged.topDonors = [...pas2Only, ...indivOnly]
+          .filter((d) => {
+            const key = d.name.toUpperCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .sort((a, b) => b.amount - a.amount)
+          .slice(0, TOP_DONOR_LIMIT);
+      }
+      if (ex.industryBreakdown?.length && !p.industryBreakdown?.length) {
+        merged.industryBreakdown = ex.industryBreakdown;
+      }
+    }
+
+    if (process.env.SKIP_LDA_SYNC === "1") {
+      merged.lobbyingOrganizations = ex.lobbyingOrganizations || [];
+      merged.totalLobbyingExposure = ex.totalLobbyingExposure || 0;
+    }
+
+    if (process.env.SKIP_LD203_SYNC === "1") {
+      merged.lobbyistContributions = ex.lobbyistContributions || null;
+    }
+
+    return merged;
+  });
+}
+
+function buildSourcesUpdated(existingMeta, now) {
+  const prev = existingMeta?.sourcesUpdated || {};
+  const fallback = existingMeta?.syncedAt;
+  const updated = { ...prev };
+
+  updated.legislators = now;
+  updated.fec = now;
+  updated.votes = now;
+
+  if (process.env.SKIP_INDIV_SYNC !== "1") {
+    updated.fecIndiv = now;
+  } else if (!updated.fecIndiv && fallback) {
+    updated.fecIndiv = fallback;
+  }
+
+  if (process.env.SKIP_LDA_SYNC !== "1") {
+    updated.lda = now;
+  } else if (!updated.lda && fallback) {
+    updated.lda = fallback;
+  }
+
+  if (process.env.SKIP_LD203_SYNC !== "1") {
+    updated.ld203 = now;
+  } else if (!updated.ld203 && fallback) {
+    updated.ld203 = fallback;
+  }
+
+  return updated;
+}
+
 async function main() {
   acquireLock();
   console.log("TrackBack bulk data sync...");
   mkdirSync(CACHE, { recursive: true });
   mkdirSync(OUT_DIR, { recursive: true });
+
+  const existingData = loadExistingDataset();
+  const existingById = new Map(
+    (existingData?.politicians || []).map((p) => [p.id, p])
+  );
 
   const legislatorsRaw = await fetch(
     "https://raw.githubusercontent.com/unitedstates/congress-legislators/gh-pages/legislators-current.json"
@@ -854,15 +945,18 @@ async function main() {
   ranked.forEach((p, i) => { p.nationalRank = i + 1; });
   politicians.filter((p) => !p.hasFinancialData).forEach((p) => { p.nationalRank = ranked.length + 1; });
 
-  const withLobbying = await buildLobbyingDataForPoliticians(politicians, CACHE);
+  const mergedPoliticians = mergePreservedFields(politicians, existingById);
+  const withLobbying = await buildLobbyingDataForPoliticians(mergedPoliticians, CACHE);
   const withLd203 = await buildLd203DataForPoliticians(withLobbying, CACHE);
   const politiciansWithLobbying = applyScoreRecalcToAll(withLd203);
 
+  const syncedAt = new Date().toISOString();
   const output = {
     meta: {
-      syncedAt: new Date().toISOString(),
+      syncedAt,
       cycle: CYCLE,
       count: politicians.length,
+      sourcesUpdated: buildSourcesUpdated(existingData?.meta, syncedAt),
       sources: [
         "FEC candidate_summary bulk CSV (fec.gov)",
         "FEC pas2 bulk file — committee-to-candidate contributions (fec.gov)",

@@ -10,6 +10,7 @@
     "lint": "next lint",
     "sync-data": "node --max-old-space-size=8192 scripts/sync-data.mjs",
     "sync-data:quick": "node --max-old-space-size=4096 scripts/sync-data.mjs --quick",
+    "sync-weekly": "node --max-old-space-size=4096 scripts/sync-data.mjs --quick",
     "enrich-lobbying": "node scripts/enrich-lobbying.mjs",
     "enrich-ld203": "node scripts/enrich-ld203.mjs",
     "recalc-scores": "node scripts/recalc-scores.mjs",

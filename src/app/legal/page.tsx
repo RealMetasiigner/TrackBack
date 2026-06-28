@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { dataMeta } from "@/data/politicians";
+import SourceFreshness from "@/components/SourceFreshness";
 import {
+  COMPLETED_DATA_SOURCES,
   DATA_ACCURACY_NOTICE,
   FEC_CONTRIBUTOR_NOTICE,
   FUTURE_DATA_ROADMAP,
@@ -122,6 +124,18 @@ export default function LegalPage() {
         <Section title="Non-affiliation & accuracy">
           <p>{NON_AFFILIATION_NOTICE}</p>
           <p>{DATA_ACCURACY_NOTICE}</p>
+        </Section>
+
+        <Section title="Data freshness">
+          <SourceFreshness />
+        </Section>
+
+        <Section title="Completed data sources">
+          <ul className="list-inside list-disc space-y-1">
+            {COMPLETED_DATA_SOURCES.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </Section>
 
         <Section title="Future public data (roadmap)">

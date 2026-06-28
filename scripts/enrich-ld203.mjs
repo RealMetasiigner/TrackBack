@@ -17,7 +17,9 @@ if (!data.meta.sources.includes(ld203Source)) data.meta.sources.push(ld203Source
 console.log(`Enriching ${data.politicians.length} politicians with LD-203 data...`);
 const withLd203 = await buildLd203DataForPoliticians(data.politicians, CACHE);
 data.politicians = applyScoreRecalcToAll(withLd203);
-data.meta.syncedAt = new Date().toISOString();
+const now = new Date().toISOString();
+data.meta.syncedAt = now;
+data.meta.sourcesUpdated = { ...(data.meta.sourcesUpdated || {}), ld203: now };
 writeFileSync(OUT_FILE, JSON.stringify(data, null, 2));
 
 const withContribs = data.politicians.filter((p) => p.lobbyistContributions?.eventCount > 0).length;

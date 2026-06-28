@@ -18,10 +18,15 @@ export const NON_AFFILIATION_NOTICE =
 export const DATA_ACCURACY_NOTICE =
   "Campaign finance and lobbying data may contain errors from source filings. Always verify amounts and connections via linked FEC, LDA.gov, and OpenSecrets records.";
 
-export const FUTURE_DATA_ROADMAP = [
+export const COMPLETED_DATA_SOURCES = [
   "LD-203 lobbyist contributions to officials (LDA.gov)",
-  "FEC Schedule B committee disbursements",
+] as const;
+
+export const FUTURE_DATA_ROADMAP = [
+  "Automated weekly GovTrack vote refresh (GitHub Actions)",
+  "FEC 2026 election cycle bulk ingestion",
   "STOCK Act periodic transaction reports",
+  "FEC Schedule B committee disbursements",
   "Congressional financial disclosure forms",
   "DOJ FARA foreign lobbying registrations",
 ] as const;

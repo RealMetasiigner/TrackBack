@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SourceFreshness from "@/components/SourceFreshness";
 import { dataMeta } from "@/data/politicians";
 import {
   FEC_CONTRIBUTOR_NOTICE,
@@ -74,6 +75,10 @@ export default function AboutPage() {
             Full legal &amp; commitments page →
           </Link>
         </p>
+      </section>
+
+      <section className="mt-10">
+        <SourceFreshness />
       </section>
 
       <section className="mt-10 text-sm text-slate-500">
